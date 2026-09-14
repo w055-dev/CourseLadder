@@ -26,14 +26,14 @@ def main():
     print("=====Сервис выбора дисциплин=====")
     print("-" * 60)
 
-    student_name = input("Введите ваше ФИО: ")
+    student_name = input("Введите ваше ФИО: ").strip()
     if student_name == "":
         print("Ошибка: имя не должно быть пустым")
         return
 
     # Ввод номера дисциплины
     show_disciplines()
-    choice_raw = input("Введите номер дисциплины: ")
+    choice_raw = input("Введите номер дисциплины: ").strip()
 
     # Проверка с преобразованием типов
     if not choice_raw.isdigit():
