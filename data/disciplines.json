@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "Компьютерный дизайн",
+    "teacher": "Иванов И.И.",
+    "credits": 5,
+    "total_seats": 30,
+    "taken_seats": 30
+  },
+  {
+    "id": 2,
+    "name": "Инструменты девопс",
+    "teacher": "Новиков С.В.",
+    "credits": 5,
+    "total_seats": 25,
+    "taken_seats": 12
+  },
+  {
+    "id": 3,
+    "name": "Программирование электронных приборов и систем",
+    "teacher": "Павлов И.П.",
+    "credits": 5,
+    "total_seats": 20,
+    "taken_seats": 20
+  },
+  {
+    "id": 4,
+    "name": "Трехмерное моделирование",
+    "teacher": "Кузнецов Д.А.",
+    "credits": 6,
+    "total_seats": 15,
+    "taken_seats": 6
+  },
+  {
+    "id": 5,
+    "name": "Машинное обучение",
+    "teacher": "Грозный И.В.",
+    "credits": 12,
+    "total_seats": 10,
+    "taken_seats": 2
+  }
+]
