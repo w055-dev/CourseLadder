@@ -1,31 +1,27 @@
 """Консольный интерфейс CourseLadder."""
 
-from src.services import (
-    load_disciplines,
-    load_enrollments,
-    enroll_student,
-    cancel_enrollment,
-    find_discipline,
-    find_discipline_by_id,
-    sort_disciplines,
-    format_disciplines,
-    student_enrollments,
-    total_credits,
-    ServiceError,
-)
+from src.models import Discipline, Offering, Student
+from src.services import CourseService, ServiceError
 from src.storage import StorageError
 
 
 MENU = """
 Выберите действие:
-1 - Показать все дисциплины
+1 - Показать каталог дисциплин
 2 - Найти дисциплину
-3 - Отсортировать дисциплины
-4 - Записаться на дисциплину
-5 - Мои записи
-6 - Отменить запись
+3 - Показать потоки
+4 - Отсортировать потоки
+5 - Записаться на поток
+6 - Мои записи
+7 - Отменить запись
 0 - Выход
 """
+
+SORT_KEYS = {
+    1: "name",
+    2: "credits",
+    3: "free",
+}
 
 
 def ask_int(prompt: str) -> int:
@@ -38,98 +34,167 @@ def ask_int(prompt: str) -> int:
             print("Ошибка: нужно ввести число.")
 
 
-def show_disciplines(disciplines) -> None:
-    print(format_disciplines(disciplines))
+def show_disciplines(disciplines: list[Discipline]) -> None:
+    """Печатает каталог дисциплин."""
+    print("Каталог дисциплин:")
+    print("-" * 80)
+    if len(disciplines) == 0:
+        print("(пусто)")
+    else:
+        for discipline in disciplines:
+            print(f"ID {discipline.id}: {discipline}")
+    print("-" * 80)
 
 
-def find_and_show(disciplines) -> None:
-    query = input("Введите часть названия или ФИО преподавателя: ").strip()
-    result = find_discipline(disciplines, query)
-    if not result:
+def show_offerings(offerings: list[Offering], service: CourseService,) -> None:
+    """Печатает потоки с названиями дисциплин."""
+    print("Потоки:")
+    print("-" * 80)
+    if len(offerings) == 0:
+        print("(пусто)")
+    else:
+        for offering in offerings:
+            discipline = service.find_discipline_by_id(
+                offering.discipline_id
+            )
+            name = discipline.name if discipline else "?"
+            credits = discipline.credits if discipline else 0
+            print(
+                f"ID {offering.id}: {name} | {offering.teacher} | "
+                f"кредитов: {credits} | "
+                f"свободно: {offering.free_seats()}/{offering.total_seats}"
+            )
+    print("-" * 80)
+
+
+def show_catalog(service: CourseService) -> None:
+    """Печатает каталог дисциплин."""
+    show_disciplines(service.disciplines)
+
+
+def show_all_offerings(service: CourseService) -> None:
+    """Печатает все потоки."""
+    show_offerings(service.offerings, service)
+
+
+def find_and_show(service: CourseService) -> None:
+    """Ищет дисциплины и печатает их."""
+    query = input("Введите часть названия дисциплины: ").strip()
+    result = service.find(query)
+    if len(result) == 0:
         print("Ничего не найдено.")
         return
-    print(format_disciplines(result))
+    show_disciplines(result)
 
 
-def sort_and_show(disciplines) -> None:
+def sort_and_show(service: CourseService) -> None:
+    """Сортирует потоки и печатает их."""
     print("Ключ сортировки: 1 - название, 2 - кредиты, 3 - свободные места")
     key_choice = ask_int("Ваш выбор: ")
-    key = {1: "name", 2: "credits", 3: "free"}.get(key_choice, "name")
-    reverse = input("По убыванию? (y/n): ").strip().lower() == "y"
-    print(format_disciplines(sort_disciplines(disciplines, key, reverse)))
+    key = SORT_KEYS.get(key_choice, "name")
+
+    answer = input("По убыванию? (y/n): ").strip().lower()
+    reverse = (answer == "y")
+
+    sorted_list = service.sort_offerings(key, reverse)
+    show_offerings(sorted_list, service)
 
 
-def do_enroll(student: str, disciplines, enrollments) -> None:
-    show_disciplines(disciplines)
-    discipline_id = ask_int("Введите ID дисциплины: ")
+def do_enroll(service: CourseService, student: Student) -> None:
+    """Записывает студента на поток."""
+    show_offerings(service.offerings, service)
+    offering_id = ask_int("Введите ID потока: ")
     try:
-        enroll_student(student, discipline_id, disciplines, enrollments)
+        service.enroll(student, offering_id)
         print("Запись успешно оформлена!")
     except ServiceError as exc:
         print(f"Ошибка: {exc}")
 
 
-def do_cancel(student: str, disciplines, enrollments) -> None:
-    mine = student_enrollments(student, enrollments)
+def do_cancel(service: CourseService, student: Student) -> None:
+    """Отменяет запись студента на поток."""
+    mine = service.student_enrollments(student)
     if len(mine) == 0:
         print("У вас нет записей.")
         return
     for enrollment in mine:
-        discipline = find_discipline_by_id(disciplines, enrollment.discipline_id)
-        if discipline is not None:
-            print(f"ID {discipline.id}: {discipline.name}")
-    discipline_id = ask_int("Введите ID дисциплины для отмены: ")
+        offering = service.find_offering_by_id(enrollment.offering_id)
+        if offering is not None:
+            discipline = service.find_discipline_by_id(
+                offering.discipline_id
+            )
+            name = discipline.name if discipline else "?"
+            print(
+                f"ID {offering.id}: {name} | {offering.teacher}"
+            )
+
+    offering_id = ask_int("Введите ID потока для отмены: ")
     try:
-        cancel_enrollment(student, discipline_id, disciplines, enrollments)
+        service.cancel(student, offering_id)
         print("Запись отменена.")
     except ServiceError as exc:
         print(f"Ошибка: {exc}")
 
 
-def show_my(student: str, disciplines, enrollments) -> None:
-    mine = student_enrollments(student, enrollments)
-    if not mine:
-        print("Вы пока не записаны ни на одну дисциплину.")
+def show_my(service: CourseService, student: Student) -> None:
+    """Показывает записи текущего студента."""
+    mine = service.student_enrollments(student)
+    if len(mine) == 0:
+        print("Вы пока не записаны ни на один поток.")
         return
-    for e in mine:
-        d = find_discipline_by_id(disciplines, e.discipline_id)
-        if d is not None:
-            print(f"- {d.name} | {d.teacher} | кредитов: {d.credits}")
-    print(f"Всего кредитов: {total_credits(mine, disciplines)}")
+
+    for enrollment in mine:
+        offering = service.find_offering_by_id(enrollment.offering_id)
+        if offering is None:
+            continue
+        discipline = service.find_discipline_by_id(
+            offering.discipline_id
+        )
+        if discipline is not None:
+            print(
+                f"- {discipline.name} | {offering.teacher} | "
+                f"кредитов: {discipline.credits}"
+            )
+
+    print(f"Всего кредитов: {service.total_credits(mine)}")
 
 
 def run() -> None:
     """Главный цикл программы."""
     print("===== CourseLadder: сервис выбора дисциплин =====")
 
+    service = CourseService()
     try:
-        disciplines = load_disciplines()
-        enrollments = load_enrollments()
+        service.load()
     except StorageError as exc:
         print(f"Не удалось загрузить данные: {exc}")
         return
 
-    student = input("Введите ваше ФИО: ").strip()
-    if not student:
+    name = input("Введите ваше ФИО: ").strip()
+    if name == "":
         print("Ошибка: имя не должно быть пустым.")
         return
+
+    student = Student(name)
 
     while True:
         print(MENU)
         action = input("Ваш выбор: ").strip()
 
         if action == "1":
-            show_disciplines(disciplines)
+            show_catalog(service)
         elif action == "2":
-            find_and_show(disciplines)
+            find_and_show(service)
         elif action == "3":
-            sort_and_show(disciplines)
+            show_all_offerings(service)
         elif action == "4":
-            do_enroll(student, disciplines, enrollments)
+            sort_and_show(service)
         elif action == "5":
-            show_my(student, disciplines, enrollments)
+            do_enroll(service, student)
         elif action == "6":
-            do_cancel(student, disciplines, enrollments)
+            show_my(service, student)
+        elif action == "7":
+            do_cancel(service, student)
         elif action == "0":
             print("Выход. До свидания!")
             break

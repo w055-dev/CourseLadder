@@ -1,22 +1,10 @@
 [
   {
     "student": "Иванов",
-    "discipline_id": 2
+    "offering_id": 2
   },
   {
     "student": "Иванов",
-    "discipline_id": 4
-  },
-  {
-    "student": "Иванов Иван",
-    "discipline_id": 2
-  },
-  {
-    "student": "Иванов Иван",
-    "discipline_id": 5
-  },
-  {
-    "student": "Иванов Иван",
-    "discipline_id": 3
+    "offering_id": 4
   }
 ]
