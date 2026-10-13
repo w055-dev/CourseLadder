@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Дисциплины{% endblock %}
+
+{% block content %}
+<h1>Каталог дисциплин</h1>
+<p class="muted">Всего дисциплин: {{ disciplines|length }}</p>
+
+
+{% if disciplines %}
+    <ul class="item-list">
+        {% for discipline in disciplines %}
+            <li>
+                <a href="{% url 'catalog:discipline_detail' discipline.id %}">
+                    <span class="item-name">{{ discipline.name }}</span>
+                    <span class="badge">{{ discipline.credits }} кредитов</span>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="empty">Каталог пока пуст.</p>
+{% endif %}
+{% endblock %}

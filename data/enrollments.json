@@ -1,10 +1,42 @@
 [
   {
-    "student": "Иванов",
+    "student": "Иванов Иван Иванович",
     "offering_id": 2
   },
   {
-    "student": "Иванов",
+    "student": "Иванов Иван Иванович",
     "offering_id": 4
+  },
+  {
+    "student": "Петров Алексей Витальевич",
+    "offering_id": 2
+  },
+  {
+    "student": "Иванов Иван Иванович",
+    "offering_id": 10
+  },
+  {
+    "student": "Петров Алексей Витальевич",
+    "offering_id": 6
+  },
+  {
+    "student": "Сидорова Надежда Николаевна",
+    "offering_id": 12
+  },
+  {
+    "student": "Кузнецов Андрей Сергеевич",
+    "offering_id": 8
+  },
+  {
+    "student": "Новиков Василий Иванович",
+    "offering_id": 14
+  },
+  {
+    "student": "Новиков Иван Иванович",
+    "offering_id": 14
+  },
+  {
+    "student": "Иванов Иван Иванович",
+    "offering_id": 6
   }
 ]

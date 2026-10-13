@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Записи{% endblock %}
+
+{% block content %}
+<h1>Записи студентов</h1>
+
+{% if rows %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Студент</th>
+                <th>Дисциплина</th>
+                <th>Преподаватель</th>
+                <th>Поток</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ row.enrollment.student }}</td>
+                    <td>
+                        {% if row.discipline %}
+                            {{ row.discipline.name }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if row.offering %}{{ row.offering.teacher }}{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if row.offering %}
+                            <a href="{% url 'offerings:offering_detail' row.offering.id %}">
+                                №{{ row.offering.id }}
+                            </a>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="empty">Записей пока нет.</p>
+{% endif %}
+
+{% endblock %}

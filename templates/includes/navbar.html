@@ -1,0 +1,15 @@
+{% load static %}
+<header class="site-header">
+    <div class="container">
+        <a class="logo" href="{% url 'homepage:index' %}">
+            <img src="{% static 'img/logo.svg' %}" alt="CourseLadder" class="logo-img">
+            CourseLadder
+        </a>
+        <nav class="site-nav">
+            <a href="{% url 'homepage:index' %}">Главная</a>
+            <a href="{% url 'catalog:discipline_list' %}">Дисциплины</a>
+            <a href="{% url 'offerings:offering_list' %}">Потоки</a>
+            <a href="{% url 'enrollments:enrollment_list' %}">Записи</a>
+        </nav>
+    </div>
+</header>

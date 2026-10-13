@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}{{ discipline.name }}{% endblock %}
+
+{% block content %}
+<h1>{{ discipline.name }}</h1>
+<div class="credits-block">
+    <span class="credits-value">{{ discipline.credits }}</span>
+    <span class="credits-label">кредитов</span>
+</div>
+
+<h2>Потоки</h2>
+
+{% if offerings %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Преподаватель</th>
+                <th>Занято / всего</th>
+                <th>Свободно</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for offering in offerings %}
+                <tr>
+                    <td>{{ offering.id }}</td>
+                    <td>{{ offering.teacher }}</td>
+                    <td>{{ offering.taken_seats }} / {{ offering.total_seats }}</td>
+                    <td>{{ offering.free_seats }}</td>
+                    <td>
+                        <a href="{% url 'offerings:offering_detail' offering.id %}">
+                            Подробнее
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="empty">Для этой дисциплины пока нет потоков.</p>
+{% endif %}
+
+<p class="back">
+    <a class="btn btn-outline" href="{% url 'catalog:discipline_list' %}">Назад к каталогу</a>
+</p>
+{% endblock %}

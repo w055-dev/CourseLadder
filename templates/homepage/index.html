@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<h1>Сервис выбора дисциплин</h1>
+
+<p class="lead">
+    CourseLadder помогает студентам выбирать дисциплины на семестр,
+    а учебному офису — контролировать потоки и лимиты мест.
+</p>
+
+<div class="stats">
+    <div class="stat">
+        <span class="stat-value">{{ disciplines_count }}</span>
+        <span class="stat-label">дисциплин</span>
+    </div>
+    <div class="stat">
+        <span class="stat-value">{{ offerings_count }}</span>
+        <span class="stat-label">потоков</span>
+    </div>
+    <div class="stat">
+        <span class="stat-value">{{ enrollments_count }}</span>
+        <span class="stat-label">записей</span>
+    </div>
+    <div class="stat">
+        <span class="stat-value">{{ taken_seats }} / {{ total_seats }}</span>
+        <span class="stat-label">занято мест</span>
+    </div>
+    <div class="stat">
+        <span class="stat-value">{{ free_seats }}</span>
+        <span class="stat-label">свободно</span>
+    </div>
+</div>
+
+<div class="actions">
+    <a class="btn" href="{% url 'catalog:discipline_list' %}">Каталог дисциплин</a>
+    <a class="btn btn-outline" href="{% url 'offerings:offering_list' %}">Все потоки</a>
+    <a class="btn btn-outline" href="{% url 'enrollments:enrollment_list' %}">Записи</a>
+</div>
+{% endblock %}

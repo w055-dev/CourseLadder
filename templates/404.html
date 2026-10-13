@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Страница CourseLadder не найдена{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h1>404</h1>
+    <p>Страница не найдена.</p>
+    <p>
+        <a class="btn" href="{% url 'homepage:index' %}">
+            На главную
+        </a>
+    </p>
+</div>
+{% endblock %}

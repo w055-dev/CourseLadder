@@ -33,5 +33,68 @@
     "teacher": "Смирнов А.А.",
     "total_seats": 10,
     "taken_seats": 0
+  },
+  {
+    "id": 6,
+    "discipline_id": 2,
+    "teacher": "Орлова М.К.",
+    "total_seats": 20,
+    "taken_seats": 5
+  },
+  {
+    "id": 7,
+    "discipline_id": 6,
+    "teacher": "Захаров П.Л.",
+    "total_seats": 25,
+    "taken_seats": 18
+  },
+  {
+    "id": 8,
+    "discipline_id": 7,
+    "teacher": "Волкова Е.Н.",
+    "total_seats": 30,
+    "taken_seats": 22
+  },
+  {
+    "id": 9,
+    "discipline_id": 8,
+    "teacher": "Морозов А.В.",
+    "total_seats": 15,
+    "taken_seats": 15
+  },
+  {
+    "id": 10,
+    "discipline_id": 8,
+    "teacher": "Белов С.И.",
+    "total_seats": 20,
+    "taken_seats": 7
+  },
+  {
+    "id": 11,
+    "discipline_id": 9,
+    "teacher": "Романова О.П.",
+    "total_seats": 18,
+    "taken_seats": 12
+  },
+  {
+    "id": 12,
+    "discipline_id": 5,
+    "teacher": "Тихонов Д.С.",
+    "total_seats": 15,
+    "taken_seats": 3
+  },
+  {
+    "id": 13,
+    "discipline_id": 10,
+    "teacher": "Фёдорова Л.А.",
+    "total_seats": 25,
+    "taken_seats": 20
+  },
+  {
+    "id": 14,
+    "discipline_id": 10,
+    "teacher": "Гусев Н.В.",
+    "total_seats": 25,
+    "taken_seats": 10
   }
 ]

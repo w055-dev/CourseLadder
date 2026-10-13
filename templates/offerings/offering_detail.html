@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Поток №{{ offering.id }}{% endblock %}
+
+{% block content %}
+    <h1>Поток №{{ offering.id }}</h1>
+
+    {% if error_message %}
+        <p class="alert alert-error">Ошибка: {{ error_message }}</p>
+    {% elif success %}
+        <p class="alert alert-success">Запись успешно оформлена.</p>
+    {% endif %}
+
+    <dl class="details">
+        <dt>Дисциплина</dt>
+        <dd>
+            {% if discipline %}
+                <a href="{% url 'catalog:discipline_detail' discipline.id %}">
+                    {{ discipline.name }}
+                </a>
+            {% else %}—{% endif %}
+        </dd>
+
+        <dt>Преподаватель</dt>
+        <dd>{{ offering.teacher }}</dd>
+
+        <dt>Кредитов</dt>
+        <dd>{% if discipline %}{{ discipline.credits }}{% else %}—{% endif %}</dd>
+
+        <dt>Мест всего</dt>
+        <dd>{{ offering.total_seats }}</dd>
+
+        <dt>Занято</dt>
+        <dd>{{ offering.taken_seats }}</dd>
+
+        <dt>Свободно</dt>
+        <dd>{{ offering.free_seats }}</dd>
+    </dl>
+
+    {% if offering.free_seats > 0 %}
+        <h2>Записаться на поток</h2>
+        <form method="get" action="{% url 'offerings:enroll' offering.id %}" class="enroll-form">
+            <label for="student">ФИО студента</label>
+            <input type="text" id="student" name="student" placeholder="" required>
+            <button type="submit" class="btn">Записаться</button>
+        </form>
+    {% else %}
+        <p class="alert alert-warn">Свободных мест нет.</p>
+    {% endif %}
+    <p class="back">
+        <a class="btn btn-outline" href="{% url 'offerings:offering_list' %}">Назад к потокам</a>
+    </p>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        document.querySelector(".enroll-form")?.addEventListener("submit", function (e) {
+            const name = document.getElementById("student").value.trim();
+            if (!name) {
+                e.preventDefault();
+                alert("Введите ФИО");
+                return;
+            }
+            if (!confirm("Записать «" + name + "» на этот поток?")) {
+                e.preventDefault();
+            }
+        });
+    </script>
+{% endblock %}

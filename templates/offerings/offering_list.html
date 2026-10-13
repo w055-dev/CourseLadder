@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Потоки{% endblock %}
+
+{% block content %}
+<h1>Потоки семестра</h1>
+
+{% if rows %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Дисциплина</th>
+                <th>Преподаватель</th>
+                <th>Кредитов</th>
+                <th>Свободно</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ row.offering.id }}</td>
+                    <td>
+                        {% if row.discipline %}
+                            <a href="{% url 'catalog:discipline_detail' row.discipline.id %}">
+                                {{ row.discipline.name }}
+                            </a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>{{ row.offering.teacher }}</td>
+                    <td>
+                        {% if row.discipline %}{{ row.discipline.credits }}{% else %}—{% endif %}
+                    </td>
+                    <td>{{ row.offering.free_seats }} / {{ row.offering.total_seats }}</td>
+                    <td>
+                        <a href="{% url 'offerings:offering_detail' row.offering.id %}">
+                            Подробнее
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="empty">Потоков пока нет.</p>
+{% endif %}
+{% endblock %}
