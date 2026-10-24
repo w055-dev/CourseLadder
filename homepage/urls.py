@@ -6,4 +6,5 @@ app_name = "homepage"
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("stats/", views.stats, name="stats"),
 ]

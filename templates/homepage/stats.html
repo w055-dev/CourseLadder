@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Статистика</h1>
+
+<div class="stats">
+    <div class="stat">
+        <span class="stat-value">{{ stats.students_count }}</span>
+        <span class="stat-label">студентов</span>
+    </div>
+    <div class="stat">
+        <span class="stat-value">{{ stats.disciplines_count }}</span>
+        <span class="stat-label">дисциплин</span>
+    </div>
+    <div class="stat">
+        <span class="stat-value">{{ stats.total_seats }}</span>
+        <span class="stat-label">всего мест</span>
+    </div>
+    <div class="stat">
+        <span class="stat-value">{{ stats.taken_seats }}</span>
+        <span class="stat-label">занятых мест</span>
+    </div>
+</div>
+
+<h2>Нагрузка студентов</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Студент</th>
+            <th>Набрано кредитов</th>
+            <th>Лимит</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in student_loads %}
+        <tr>
+            <td>{{ s.full_name }}</td>
+            <td>{{ s.current_credits }}</td>
+            <td>{{ s.max_credits }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,30 +1,22 @@
-from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.http import Http404
-from homepage.services import get_service
+from db.database import get_connection
 
 
-def discipline_list(request: HttpRequest) -> HttpResponse:
-    """Список всех дисциплин."""
-    service = get_service()
-    return render(request, "catalog/discipline_list.html", {"disciplines": service.disciplines})
+def discipline_list(request):
+    with get_connection() as conn:
+        disciplines = conn.execute("SELECT id, name, credits FROM discipline ORDER BY name").fetchall()
+    return render(request, "catalog/discipline_list.html", {"disciplines": disciplines})
 
 
-def discipline_detail(request: HttpRequest, discipline_id: int) -> HttpResponse:
-    """Страница дисциплины с её потоками."""
-    service = get_service()
-    discipline = service.find_discipline_by_id(discipline_id)
-
-    if discipline is None:
-        raise Http404("Дисциплина не найдена")
-
-    offerings = []
-    for offering in service.offerings:
-        if offering.discipline_id == discipline_id:
-            offerings.append(offering)
-
-    context = {
-        "discipline": discipline,
-        "offerings": offerings,
-    }
-    return render(request, "catalog/discipline_detail.html", context)
+def discipline_detail(request, discipline_id):
+    with get_connection() as conn:
+        discipline = conn.execute(""""
+                                  SELECT *, (total_seats - taken_seats) AS free_seats
+                                   FROM discipline
+                                    WHERE id = ?
+                                """, (discipline_id,)).fetchall()
+        if not discipline:
+            raise Http404("Дисциплина не найдена")
+        offerings = conn.execute("SELECT * FROM offering WHERE discipline_id = ?", (discipline_id,)).fetchall()
+    return render(request, "catalog/discipline_detail.html", {"discipline": discipline, "offerings": offerings})

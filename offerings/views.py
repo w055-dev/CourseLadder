@@ -1,74 +1,84 @@
+import sqlite3
+from django.shortcuts import render
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import render, redirect
-from homepage.services import get_service
-from src.services import ServiceError
+from db.database import get_connection
 
 
 def offering_list(request: HttpRequest) -> HttpResponse:
-    """Список всех потоков."""
-    service = get_service()
-
-    rows = []
-    for offering in service.offerings:
-        discipline = service.find_discipline_by_id(
-            offering.discipline_id
-        )
-        rows.append({
-            "offering": offering,
-            "discipline": discipline,
-        })
-
-    return render(request, "offerings/offering_list.html", {"rows": rows})
+    with get_connection() as conn:
+        # JOIN: данные потока и его дисциплины
+        offerings = conn.execute("""
+        SELECT o.id, o.teacher, o.total_seats, o.taken_seats,
+            (o.total_seats - o.taken_seats) AS free_seats,
+            d.id AS discipline_id, d.name AS discipline_name, d.credits
+        FROM offering o
+        JOIN discipline d ON o.discipline_id = d.id
+    """).fetchall()
+    return render(request, "offerings/offering_list.html", {"offerings": offerings})
 
 
-def offering_detail(request: HttpRequest, offering_id: int) -> HttpResponse:
-    """Страница потока с подробностями."""
-    service = get_service()
-    offering = service.find_offering_by_id(offering_id)
-
-    if offering is None:
-        raise Http404("Поток не найден")
-
-    discipline = service.find_discipline_by_id(offering.discipline_id)
-
-    context = {
-        "offering": offering,
-        "discipline": discipline,
-    }
-    return render(request, "offerings/offering_detail.html", context)
+def offering_detail2(request: HttpRequest, offering_id: int) -> HttpResponse:
+    with get_connection() as conn:
+        offering = conn.execute("""
+            SELECT o.*, 
+                   d.name AS discipline_name, 
+                   d.credits,
+                   (o.total_seats - o.taken_seats) AS free_seats
+            FROM offering o 
+            JOIN discipline d ON o.discipline_id = d.id
+            WHERE o.id = ?
+        """, (offering_id,)).fetchone()
+        if not offering:
+            raise Http404("Поток не найден")
+    return render(request, "offerings/offering_detail.html", {"offering": offering})
 
 
 def enroll(request: HttpRequest, offering_id: int) -> HttpResponse:
-    service = get_service()
-    offering = service.find_offering_by_id(offering_id)
-
-    if offering is None:
-        raise Http404("Поток не найден")
-
     student_name = request.GET.get("student", "").strip()
-    if student_name == "":
-        # Имя не передано => Редирект на страницу потока
-        return redirect("offerings:offering_detail", offering_id=offering_id)
-
-    from src.models import Student
-    student = Student(student_name)
-
-    for enrollment in service.enrollments:
-        if enrollment.student == student.name:
-            student.add_enrollment(enrollment)
-
     error_message = ""
-    try:
-        service.enroll(student, offering_id)
-    except ServiceError as exc:
-        error_message = str(exc)
+    success = False
 
-    discipline = service.find_discipline_by_id(offering.discipline_id)
+    with get_connection() as conn:
+        offering = conn.execute("""
+            SELECT o.*, d.credits AS d_credits, d.name AS d_name 
+            FROM offering o JOIN discipline d ON o.discipline_id = d.id
+            WHERE o.id = ?
+        """, (offering_id,)).fetchone()
+        if not offering:
+            raise Http404("Поток не найден")
 
-    context = {
+        if student_name:
+            # 1. Ищем или создаем студента
+            student = conn.execute("SELECT * FROM student WHERE full_name = ?", (student_name,)).fetchone()
+            if not student:
+                cursor = conn.execute("INSERT INTO student (full_name) VALUES (?)", (student_name,))
+                conn.commit()
+                student_id, max_credits, current_credits = cursor.lastrowid, 30, 0
+            else:
+                student_id, max_credits = student["id"], student["max_credits"]
+                # 2. Агрегатный запрос: сколько кредитов уже набрано
+                current_credits = conn.execute("""
+                    SELECT COALESCE(SUM(d.credits), 0) AS total
+                    FROM enrollment e
+                    JOIN offering o ON e.offering_id = o.id
+                    JOIN discipline d ON o.discipline_id = d.id
+                    WHERE e.student_id = ?
+                """, (student_id,)).fetchone()["total"]
+
+            # 3. Проверка лимита
+            if current_credits + offering["d_credits"] > max_credits:
+                error_message = f"Превышен лимит кредитов: {current_credits + offering['d_credits']} из {max_credits}."
+            else:
+                try:
+                    conn.execute("INSERT INTO enrollment (student_id, offering_id) VALUES (?, ?)", (student_id, offering_id))
+                    conn.execute("UPDATE offering SET taken_seats = taken_seats + 1 WHERE id = ?", (offering_id,))
+                    conn.commit()
+                    success = True
+                except sqlite3.IntegrityError:
+                    error_message = "Вы уже записаны на этот поток."
+
+    return render(request, "offerings/offering_detail.html", {
         "offering": offering,
-        "discipline": discipline,
         "error_message": error_message,
-        "success": error_message == "",
-    }
-    return render(request, "offerings/offering_detail.html", context)
+        "success": success
+    })

@@ -5,7 +5,7 @@
 {% block content %}
 <h1>Потоки семестра</h1>
 
-{% if rows %}
+{% if offerings %}
     <table class="table">
         <thead>
             <tr>
@@ -18,23 +18,19 @@
             </tr>
         </thead>
         <tbody>
-            {% for row in rows %}
+            {% for o in offerings %}
                 <tr>
-                    <td>{{ row.offering.id }}</td>
+                    <td>{{ o.id }}</td>
                     <td>
-                        {% if row.discipline %}
-                            <a href="{% url 'catalog:discipline_detail' row.discipline.id %}">
-                                {{ row.discipline.name }}
-                            </a>
-                        {% else %}—{% endif %}
+                        <a href="{% url 'catalog:discipline_detail' o.discipline_id %}">
+                            {{ o.discipline_name }}
+                        </a>
                     </td>
-                    <td>{{ row.offering.teacher }}</td>
+                    <td>{{ o.teacher }}</td>
+                    <td>{{ o.credits }}</td>
+                    <td>{{ o.free_seats }} / {{ o.total_seats }}</td>
                     <td>
-                        {% if row.discipline %}{{ row.discipline.credits }}{% else %}—{% endif %}
-                    </td>
-                    <td>{{ row.offering.free_seats }} / {{ row.offering.total_seats }}</td>
-                    <td>
-                        <a href="{% url 'offerings:offering_detail' row.offering.id %}">
+                        <a class="btn btn-sm btn-outline" href="{% url 'offerings:offering_detail' o.id %}">
                             Подробнее
                         </a>
                     </td>

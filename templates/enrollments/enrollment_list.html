@@ -5,7 +5,7 @@
 {% block content %}
 <h1>Записи студентов</h1>
 
-{% if rows %}
+{% if enrollments %}
     <table class="table">
         <thead>
             <tr>
@@ -16,23 +16,19 @@
             </tr>
         </thead>
         <tbody>
-            {% for row in rows %}
+            {% for e in enrollments %}
                 <tr>
-                    <td>{{ row.enrollment.student }}</td>
+                    <td>{{ e.student_name }}</td>
                     <td>
-                        {% if row.discipline %}
-                            {{ row.discipline.name }}
-                        {% else %}—{% endif %}
+                        <a href="{% url 'catalog:discipline_detail' e.discipline_id %}">
+                            {{ e.discipline_name }}
+                        </a>
                     </td>
+                    <td>{{ e.teacher }}</td>
                     <td>
-                        {% if row.offering %}{{ row.offering.teacher }}{% else %}—{% endif %}
-                    </td>
-                    <td>
-                        {% if row.offering %}
-                            <a href="{% url 'offerings:offering_detail' row.offering.id %}">
-                                №{{ row.offering.id }}
-                            </a>
-                        {% else %}—{% endif %}
+                        <a href="{% url 'offerings:offering_detail' e.offering_id %}">
+                            №{{ e.offering_id }}
+                        </a>
                     </td>
                 </tr>
             {% endfor %}

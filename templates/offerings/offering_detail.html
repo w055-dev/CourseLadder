@@ -14,9 +14,9 @@
     <dl class="details">
         <dt>Дисциплина</dt>
         <dd>
-            {% if discipline %}
-                <a href="{% url 'catalog:discipline_detail' discipline.id %}">
-                    {{ discipline.name }}
+            {% if offering.discipline_id %}
+                <a href="{% url 'catalog:discipline_detail' offering.discipline_id %}">
+                    {{ offering.discipline_name }}
                 </a>
             {% else %}—{% endif %}
         </dd>
@@ -25,7 +25,7 @@
         <dd>{{ offering.teacher }}</dd>
 
         <dt>Кредитов</dt>
-        <dd>{% if discipline %}{{ discipline.credits }}{% else %}—{% endif %}</dd>
+        <dd>{{ offering.credits }}</dd>
 
         <dt>Мест всего</dt>
         <dd>{{ offering.total_seats }}</dd>
@@ -34,7 +34,7 @@
         <dd>{{ offering.taken_seats }}</dd>
 
         <dt>Свободно</dt>
-        <dd>{{ offering.free_seats }}</dd>
+        <dd>{{ offering.free_seats }}</dd>  <!-- Уже вычислено в SQL -->
     </dl>
 
     {% if offering.free_seats > 0 %}
