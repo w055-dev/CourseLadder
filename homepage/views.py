@@ -1,28 +1,23 @@
 from django.shortcuts import render
-from django.http import HttpRequest, HttpResponse
-from db.database import get_connection
+from django.db.models import Sum, Count, Avg, F
+from catalog.models import Discipline, Student
+from offerings.models import Offering
+from enrollments.models import Enrollment
 
 
-def index(request: HttpRequest) -> HttpResponse:
-    """Главная страница: краткая сводка по данным."""
-    with get_connection() as conn:
-        # Получаем общую статистику для главной страницы
-        data = conn.execute("""
-            SELECT 
-                (SELECT COUNT(*) FROM discipline) AS disciplines_count,
-                (SELECT COUNT(*) FROM offering) AS offerings_count,
-                (SELECT COUNT(*) FROM enrollment) AS enrollments_count,
-                (SELECT SUM(total_seats) FROM offering) AS total_seats,
-                (SELECT SUM(taken_seats) FROM offering) AS taken_seats
-        """).fetchone()
+def index(request):
+    # Используется aggregate для получения сводки за один запрос
+    stats = Offering.objects.aggregate(
+        total_seats=Sum("total_seats"),
+        taken_seats=Sum("taken_seats")
+    )
+    total_seats = stats["total_seats"] or 0
+    taken_seats = stats["taken_seats"] or 0
 
-    total_seats = data["total_seats"] or 0
-    taken_seats = data["taken_seats"] or 0
-    
     context = {
-        "disciplines_count": data["disciplines_count"],
-        "offerings_count": data["offerings_count"],
-        "enrollments_count": data["enrollments_count"],
+        "disciplines_count": Discipline.objects.count(),
+        "offerings_count": Offering.objects.count(),
+        "enrollments_count": Enrollment.objects.count(),
         "total_seats": total_seats,
         "taken_seats": taken_seats,
         "free_seats": total_seats - taken_seats,
@@ -30,27 +25,37 @@ def index(request: HttpRequest) -> HttpResponse:
     return render(request, "homepage/index.html", context)
 
 
-def stats(request: HttpRequest) -> HttpResponse:
-    """Страница расширенной статистики."""
-    with get_connection() as conn:
-        # Общая статистика
-        stats_data = conn.execute("""
-            SELECT 
-                (SELECT COUNT(*) FROM student) AS students_count,
-                (SELECT COUNT(*) FROM discipline) AS disciplines_count,
-                (SELECT SUM(total_seats) FROM offering) AS total_seats,
-                (SELECT SUM(taken_seats) FROM offering) AS taken_seats
-        """).fetchone()
-        
-        # Нагрузка студентов (GROUP BY + агрегация)
-        student_loads = conn.execute("""
-            SELECT s.full_name, COALESCE(SUM(d.credits), 0) AS current_credits, s.max_credits
-            FROM student s
-            LEFT JOIN enrollment e ON s.id = e.student_id
-            LEFT JOIN offering o ON e.offering_id = o.id
-            LEFT JOIN discipline d ON o.discipline_id = d.id
-            GROUP BY s.id
-            ORDER BY current_credits DESC
-        """).fetchall()
+def stats(request):
+    # Расчет общих сумм (без средних значений)
+    general_stats = Offering.objects.aggregate(
+        total_seats=Sum("total_seats"),
+        taken_seats=Sum("taken_seats"),
+    )
 
-    return render(request, "homepage/stats.html", {"stats": stats_data, "student_loads": student_loads})
+    # Расчет среднего количества свободных мест:
+    free_seats_avg = Offering.objects.annotate(
+        free=F("total_seats") - F("taken_seats")
+    ).aggregate(avg=Avg("free"))["avg"] or 0  # сначала аннотируем, а уже затем берем среднее.
+
+    general_stats["students_count"] = Student.objects.count()
+    general_stats["disciplines_count"] = Discipline.objects.count()
+
+    # Аннотирование: нагрузка студентов по кредитам
+    student_loads = Student.objects.annotate(
+        total_credits_db=Sum("enrollments__offering__discipline__credits")
+    ).order_by("-total_credits_db")
+
+    # Топ-3 популярных потока
+    top_offerings = Offering.objects.annotate(
+        enroll_count=Count("enrollments")
+    ).filter(enroll_count__gt=0).values(
+        "discipline__name", "teacher", "enroll_count"
+    ).order_by("-enroll_count")[:3]
+
+    context = {
+        "stats": general_stats,
+        "avg_free_seats": round(free_seats_avg, 1),  # Округляние для красоты
+        "student_loads": student_loads,
+        "top_offerings": top_offerings,
+    }
+    return render(request, "homepage/stats.html", context)

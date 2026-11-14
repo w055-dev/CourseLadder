@@ -5,7 +5,7 @@
 {% block content %}
 <h1>Потоки семестра</h1>
 
-{% if offerings %}
+{% if page_obj %}
     <table class="table">
         <thead>
             <tr>
@@ -18,16 +18,16 @@
             </tr>
         </thead>
         <tbody>
-            {% for o in offerings %}
+            {% for o in page_obj %}
                 <tr>
                     <td>{{ o.id }}</td>
                     <td>
-                        <a href="{% url 'catalog:discipline_detail' o.discipline_id %}">
-                            {{ o.discipline_name }}
+                        <a href="{% url 'catalog:discipline_detail' o.discipline.id %}">
+                            {{ o.discipline.name }}
                         </a>
                     </td>
                     <td>{{ o.teacher }}</td>
-                    <td>{{ o.credits }}</td>
+                    <td>{{ o.discipline.credits }}</td>
                     <td>{{ o.free_seats }} / {{ o.total_seats }}</td>
                     <td>
                         <a class="btn btn-sm btn-outline" href="{% url 'offerings:offering_detail' o.id %}">
@@ -38,6 +38,15 @@
             {% endfor %}
         </tbody>
     </table>
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a class="btn btn-outline" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Назад</a>
+        {% endif %}
+        <span>Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a class="btn btn-outline" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Вперед</a>
+        {% endif %}
+    </div>
 {% else %}
     <p class="empty">Потоков пока нет.</p>
 {% endif %}

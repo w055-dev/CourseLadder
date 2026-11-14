@@ -30,7 +30,7 @@
                     <td>{{ offering.taken_seats }} / {{ offering.total_seats }}</td>
                     <td>{{ offering.free_seats }}</td>
                     <td>
-                        <a href="{% url 'offerings:offering_detail' offering.id %}">
+                        <a class="btn btn-sm btn-outline" href="{% url 'offerings:offering_detail' offering.id %}">
                             Подробнее
                         </a>
                     </td>

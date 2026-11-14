@@ -1,84 +1,80 @@
-import sqlite3
-from django.shortcuts import render
-from django.http import Http404, HttpRequest, HttpResponse
-from db.database import get_connection
+from django.shortcuts import render, get_object_or_404
+from django.db.models import F, Q
+from django.core.paginator import Paginator
+from django.db import IntegrityError
+from offerings.models import Offering
+from catalog.models import Student
+from enrollments.models import Enrollment
 
 
-def offering_list(request: HttpRequest) -> HttpResponse:
-    with get_connection() as conn:
-        # JOIN: данные потока и его дисциплины
-        offerings = conn.execute("""
-        SELECT o.id, o.teacher, o.total_seats, o.taken_seats,
-            (o.total_seats - o.taken_seats) AS free_seats,
-            d.id AS discipline_id, d.name AS discipline_name, d.credits
-        FROM offering o
-        JOIN discipline d ON o.discipline_id = d.id
-    """).fetchall()
-    return render(request, "offerings/offering_list.html", {"offerings": offerings})
+def offering_list(request):
+    # Аннотируем QuerySet, добавляя виртуальное поле free_seats
+    offerings = Offering.objects.select_related("discipline").annotate(
+        calculated_seats=F("total_seats") - F("taken_seats")
+    )
+
+    query = request.GET.get("q", "").strip()
+    if query:
+        offerings = offerings.filter(
+            Q(discipline__name__icontains=query) |
+            Q(teacher__icontains=query)
+        )
+
+    offerings = offerings.order_by("id")
+
+    paginator = Paginator(offerings, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    context = {
+        "page_obj": page_obj,
+        "query": query
+    }
+    return render(request, "offerings/offering_list.html", context)
 
 
-def offering_detail2(request: HttpRequest, offering_id: int) -> HttpResponse:
-    with get_connection() as conn:
-        offering = conn.execute("""
-            SELECT o.*, 
-                   d.name AS discipline_name, 
-                   d.credits,
-                   (o.total_seats - o.taken_seats) AS free_seats
-            FROM offering o 
-            JOIN discipline d ON o.discipline_id = d.id
-            WHERE o.id = ?
-        """, (offering_id,)).fetchone()
-        if not offering:
-            raise Http404("Поток не найден")
-    return render(request, "offerings/offering_detail.html", {"offering": offering})
+def offering_detail(request, offering_id):
+    # select_related, чтобы сразу получить дисциплину одним JOIN-запросом
+    offering = get_object_or_404(
+        Offering.objects.select_related("discipline"),
+        id=offering_id
+    )
+
+    context = {
+        "offering": offering
+    }
+    return render(request, "offerings/offering_detail.html", context)
 
 
-def enroll(request: HttpRequest, offering_id: int) -> HttpResponse:
-    student_name = request.GET.get("student", "").strip()
+def enroll(request, offering_id):
+    offering = get_object_or_404(Offering.objects.select_related("discipline"), id=offering_id)
     error_message = ""
     success = False
 
-    with get_connection() as conn:
-        offering = conn.execute("""
-            SELECT o.*, d.credits AS d_credits, d.name AS d_name 
-            FROM offering o JOIN discipline d ON o.discipline_id = d.id
-            WHERE o.id = ?
-        """, (offering_id,)).fetchone()
-        if not offering:
-            raise Http404("Поток не найден")
+    student_name = request.GET.get("student", "").strip()
+    if student_name:
+        student, created = Student.objects.get_or_create(full_name=student_name)
 
-        if student_name:
-            # 1. Ищем или создаем студента
-            student = conn.execute("SELECT * FROM student WHERE full_name = ?", (student_name,)).fetchone()
-            if not student:
-                cursor = conn.execute("INSERT INTO student (full_name) VALUES (?)", (student_name,))
-                conn.commit()
-                student_id, max_credits, current_credits = cursor.lastrowid, 30, 0
-            else:
-                student_id, max_credits = student["id"], student["max_credits"]
-                # 2. Агрегатный запрос: сколько кредитов уже набрано
-                current_credits = conn.execute("""
-                    SELECT COALESCE(SUM(d.credits), 0) AS total
-                    FROM enrollment e
-                    JOIN offering o ON e.offering_id = o.id
-                    JOIN discipline d ON o.discipline_id = d.id
-                    WHERE e.student_id = ?
-                """, (student_id,)).fetchone()["total"]
+        new_total = student.current_credits + offering.discipline.credits
 
-            # 3. Проверка лимита
-            if current_credits + offering["d_credits"] > max_credits:
-                error_message = f"Превышен лимит кредитов: {current_credits + offering['d_credits']} из {max_credits}."
-            else:
-                try:
-                    conn.execute("INSERT INTO enrollment (student_id, offering_id) VALUES (?, ?)", (student_id, offering_id))
-                    conn.execute("UPDATE offering SET taken_seats = taken_seats + 1 WHERE id = ?", (offering_id,))
-                    conn.commit()
-                    success = True
-                except sqlite3.IntegrityError:
-                    error_message = "Вы уже записаны на этот поток."
+        if new_total > student.max_credits:
+            error_message = f"Превышен лимит кредитов: {new_total} из {student.max_credits}."
+        elif offering.taken_seats >= offering.total_seats:
+            error_message = "На этом потоке закончились свободные места."
+        else:
+            try:
+                Enrollment.objects.create(student=student, offering=offering)
+                student.current_credits += offering.discipline.credits
+                student.save()
 
-    return render(request, "offerings/offering_detail.html", {
+                offering.taken_seats += 1
+                offering.save()
+                success = True
+            except IntegrityError:
+                error_message = "Вы уже записаны на этот поток."
+
+    context = {
         "offering": offering,
         "error_message": error_message,
         "success": success
-    })
+    }
+    return render(request, "offerings/offering_detail.html", context)

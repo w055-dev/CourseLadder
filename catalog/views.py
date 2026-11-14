@@ -1,22 +1,25 @@
-from django.shortcuts import render
-from django.http import Http404
-from db.database import get_connection
+from django.shortcuts import render, get_object_or_404
+from catalog.models import Discipline
 
 
 def discipline_list(request):
-    with get_connection() as conn:
-        disciplines = conn.execute("SELECT id, name, credits FROM discipline ORDER BY name").fetchall()
-    return render(request, "catalog/discipline_list.html", {"disciplines": disciplines})
+    # Получаем все дисциплины, сортируем по названию
+    disciplines = Discipline.objects.all().order_by("name")
+    context = {
+        "disciplines": disciplines
+    }
+    return render(request, "catalog/discipline_list.html", context)
 
 
 def discipline_detail(request, discipline_id):
-    with get_connection() as conn:
-        discipline = conn.execute(""""
-                                  SELECT *, (total_seats - taken_seats) AS free_seats
-                                   FROM discipline
-                                    WHERE id = ?
-                                """, (discipline_id,)).fetchall()
-        if not discipline:
-            raise Http404("Дисциплина не найдена")
-        offerings = conn.execute("SELECT * FROM offering WHERE discipline_id = ?", (discipline_id,)).fetchall()
-    return render(request, "catalog/discipline_detail.html", {"discipline": discipline, "offerings": offerings})
+    discipline = get_object_or_404(Discipline, id=discipline_id)  # get_object_or_404 автоматически вернет 404, если нет такого id
+
+    # Получаем потоки этой дисциплины через обратную связь related_name="offerings"
+    offerings = discipline.offerings.all().order_by("teacher")
+
+    context = {
+        "discipline": discipline,
+        "offerings": offerings
+    }
+
+    return render(request, "catalog/discipline_detail.html", context)

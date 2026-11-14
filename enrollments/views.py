@@ -1,18 +1,35 @@
-from django.shortcuts import render
-from db.database import get_connection
+from django.shortcuts import render, get_object_or_404, redirect
+from enrollments.models import Enrollment
 
 
 def enrollment_list(request):
-    with get_connection() as conn:
-        # JOIN трех таблиц
-        enrollments = conn.execute("""
-        SELECT e.id AS enrollment_id, s.full_name AS student_name, 
-            d.id AS discipline_id, d.name AS discipline_name, 
-            o.id AS offering_id, o.teacher 
-        FROM enrollment e
-        JOIN student s ON e.student_id = s.id
-        JOIN offering o ON e.offering_id = o.id
-        JOIN discipline d ON o.discipline_id = d.id
-        ORDER BY s.full_name
-    """).fetchall()
-    return render(request, "enrollments/enrollment_list.html", {"enrollments": enrollments})
+    # Получаем все записи, оптимизируем запросы
+    enrollments = Enrollment.objects.select_related(
+        "student", "offering__discipline"
+    ).order_by("student__full_name")
+
+    context = {
+        "enrollments": enrollments
+    }
+    return render(request, "enrollments/enrollment_list.html", context)
+
+
+def cancel_enrollment(request, enrollment_id):
+    enrollment = get_object_or_404(Enrollment, id=enrollment_id)
+    offering = enrollment.offering
+    if request.method == "POST":
+        # Удаление
+        enrollment.delete()
+        student = enrollment.student
+        student.current_credits -= enrollment.offering.discipline.credits
+        student.save()
+        # Освобождение места
+        offering.taken_seats -= 1
+        offering.save()
+        return redirect('enrollments:enrollment_list')
+
+    context = {
+        "enrollment": enrollment
+    }
+
+    return render(request, "enrollments/cancel_confirm.html", context)

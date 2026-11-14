@@ -13,22 +13,31 @@
                 <th>Дисциплина</th>
                 <th>Преподаватель</th>
                 <th>Поток</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
             {% for e in enrollments %}
                 <tr>
-                    <td>{{ e.student_name }}</td>
+                    <td>{{ e.student.full_name }}</td>
                     <td>
-                        <a href="{% url 'catalog:discipline_detail' e.discipline_id %}">
-                            {{ e.discipline_name }}
+                        <a href="{% url 'catalog:discipline_detail' e.offering.discipline.id %}">
+                            {{ e.offering.discipline.name }}
                         </a>
                     </td>
-                    <td>{{ e.teacher }}</td>
+                    <td>{{ e.offering.teacher }}</td>
                     <td>
-                        <a href="{% url 'offerings:offering_detail' e.offering_id %}">
-                            №{{ e.offering_id }}
+                        <a href="{% url 'offerings:offering_detail' e.offering.id %}">
+                            №{{ e.offering.id }}
                         </a>
+                    </td>
+                    <td>
+                        <form action="{% url 'enrollments:cancel' e.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('Отменить запись?')">
+                                Отменить
+                            </button>
+                        </form>
                     </td>
                 </tr>
             {% endfor %}
