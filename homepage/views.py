@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.db.models import Sum, Count, Avg, F
+from django.db.models import Sum, Count, Q
 from catalog.models import Discipline, Student
 from offerings.models import Offering
 from enrollments.models import Enrollment
@@ -7,12 +7,10 @@ from enrollments.models import Enrollment
 
 def index(request):
     # Используется aggregate для получения сводки за один запрос
-    stats = Offering.objects.aggregate(
-        total_seats=Sum("total_seats"),
-        taken_seats=Sum("taken_seats")
-    )
+    stats = Offering.objects.aggregate(total_seats=Sum("total_seats"))
+
     total_seats = stats["total_seats"] or 0
-    taken_seats = stats["taken_seats"] or 0
+    taken_seats = Enrollment.objects.active().count()
 
     context = {
         "disciplines_count": Discipline.objects.count(),
@@ -27,27 +25,34 @@ def index(request):
 
 def stats(request):
     # Расчет общих сумм (без средних значений)
-    general_stats = Offering.objects.aggregate(
-        total_seats=Sum("total_seats"),
-        taken_seats=Sum("taken_seats"),
-    )
+    general_stats = Offering.objects.aggregate(total_seats=Sum("total_seats"))
+    total_seats = general_stats["total_seats"] or 0
+    general_stats["total_seats"] = total_seats  # явно записываем, чтобы не было None
+
+    taken_seats = Enrollment.objects.active().count()
+    general_stats["taken_seats"] = taken_seats
 
     # Расчет среднего количества свободных мест:
-    free_seats_avg = Offering.objects.annotate(
-        free=F("total_seats") - F("taken_seats")
-    ).aggregate(avg=Avg("free"))["avg"] or 0  # сначала аннотируем, а уже затем берем среднее.
+    offerings_count = Offering.objects.count()
+    if offerings_count > 0:
+        free_seats_avg = (total_seats - taken_seats) / offerings_count
+    else:
+        free_seats_avg = 0
 
     general_stats["students_count"] = Student.objects.count()
     general_stats["disciplines_count"] = Discipline.objects.count()
 
     # Аннотирование: нагрузка студентов по кредитам
     student_loads = Student.objects.annotate(
-        total_credits_db=Sum("enrollments__offering__discipline__credits")
+        total_credits_db=Sum(
+            "enrollments__offering__discipline__credits",
+            filter=Q(enrollments__status='ACTIVE')
+            )
     ).order_by("-total_credits_db")
 
     # Топ-3 популярных потока
     top_offerings = Offering.objects.annotate(
-        enroll_count=Count("enrollments")
+        enroll_count=Count("enrollments", filter=Q(enrollments__status='ACTIVE'))
     ).filter(enroll_count__gt=0).values(
         "discipline__name", "teacher", "enroll_count"
     ).order_by("-enroll_count")[:3]

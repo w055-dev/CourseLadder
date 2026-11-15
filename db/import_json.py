@@ -2,6 +2,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from django.utils.text import slugify
 
 # Добавление корневой папки проекта в sys.path, чтобы Python нашел модули catalog и т.д.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -36,7 +37,11 @@ def main() -> None:
 
     print("Загрузка дисциплин...")
     for d in load_json("disciplines.json"):
-        Discipline.objects.create(id=d["id"], name=d["name"], credits=d["credits"])
+        Discipline.objects.create(
+            id=d["id"],
+            name=d["name"],
+            credits=d["credits"],
+            slug=slugify(d["name"], allow_unicode=True))
 
     print("Загрузка студентов...")
     enrollments = load_json("enrollments.json")
@@ -51,7 +56,7 @@ def main() -> None:
         disc = Discipline.objects.get(id=o["discipline_id"])
         off = Offering.objects.create(
             id=o["id"], discipline=disc, teacher=o["teacher"],
-            total_seats=o["total_seats"], taken_seats=o["taken_seats"]
+            total_seats=o["total_seats"],
         )
         offerings_map[o["id"]] = off
 
@@ -59,7 +64,8 @@ def main() -> None:
     for e in enrollments:
         Enrollment.objects.create(
             student=students_map[e["student"]],
-            offering=offerings_map[e["offering_id"]]
+            offering=offerings_map[e["offering_id"]],
+            status='ACTIVE'
         )
     print("Импорт успешно завершен через ORM!")
 

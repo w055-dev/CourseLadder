@@ -27,7 +27,7 @@
                 <tr>
                     <td>{{ offering.id }}</td>
                     <td>{{ offering.teacher }}</td>
-                    <td>{{ offering.taken_seats }} / {{ offering.total_seats }}</td>
+                    <td>{{ offering.active_taken_seats }} / {{ offering.total_seats }}</td>
                     <td>{{ offering.free_seats }}</td>
                     <td>
                         <a class="btn btn-sm btn-outline" href="{% url 'offerings:offering_detail' offering.id %}">

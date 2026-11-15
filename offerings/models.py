@@ -15,4 +15,10 @@ class Offering(models.Model):
 
     @property
     def free_seats(self):
-        return self.total_seats - self.taken_seats
+        active_taken = self.enrollments.filter(status='ACTIVE').count()
+        return self.total_seats - active_taken
+
+    @property
+    def active_taken_seats(self):
+        """Возвращает количество активных записей на этот поток."""
+        return self.enrollments.filter(status='ACTIVE').count()

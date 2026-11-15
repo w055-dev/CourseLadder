@@ -22,7 +22,7 @@
                 <tr>
                     <td>{{ o.id }}</td>
                     <td>
-                        <a href="{% url 'catalog:discipline_detail' o.discipline.id %}">
+                        <a href="{% url 'catalog:discipline_detail' o.discipline.slug %}">
                             {{ o.discipline.name }}
                         </a>
                     </td>

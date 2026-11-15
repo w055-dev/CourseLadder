@@ -58,19 +58,33 @@ def enroll(request, offering_id):
 
         if new_total > student.max_credits:
             error_message = f"Превышен лимит кредитов: {new_total} из {student.max_credits}."
-        elif offering.taken_seats >= offering.total_seats:
+        elif offering.free_seats <= 0:
             error_message = "На этом потоке закончились свободные места."
         else:
-            try:
-                Enrollment.objects.create(student=student, offering=offering)
-                student.current_credits += offering.discipline.credits
-                student.save()
+            # Ищем, есть ли уже запись этого студента на этот поток (даже если она отменена)
+            existing_enrollment = Enrollment.objects.filter(student=student, offering=offering).first()
 
-                offering.taken_seats += 1
-                offering.save()
-                success = True
-            except IntegrityError:
-                error_message = "Вы уже записаны на этот поток."
+            if existing_enrollment:
+                if existing_enrollment.status == 'CANCELLED':
+                    # Восстанавливаем отмененную запись
+                    existing_enrollment.status = 'ACTIVE'
+                    existing_enrollment.save()
+
+                    student.current_credits += offering.discipline.credits
+                    student.save()
+                    success = True
+                else:
+                    # Если статус другой (например, ACTIVE), выводим ошибку дубля
+                    error_message = "Вы уже записаны на этот поток."
+            else:
+                # Если записи вообще не было, создаем новую
+                try:
+                    Enrollment.objects.create(student=student, offering=offering, status='ACTIVE')
+                    student.current_credits += offering.discipline.credits
+                    student.save()
+                    success = True
+                except IntegrityError:
+                    error_message = "Ошибка при записи на поток."
 
     context = {
         "offering": offering,

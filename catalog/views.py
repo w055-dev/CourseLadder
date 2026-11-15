@@ -11,8 +11,8 @@ def discipline_list(request):
     return render(request, "catalog/discipline_list.html", context)
 
 
-def discipline_detail(request, discipline_id):
-    discipline = get_object_or_404(Discipline, id=discipline_id)  # get_object_or_404 автоматически вернет 404, если нет такого id
+def discipline_detail(request, slug):
+    discipline = get_object_or_404(Discipline, slug=slug)  # get_object_or_404 автоматически вернет 404, если нет такого slug
 
     # Получаем потоки этой дисциплины через обратную связь related_name="offerings"
     offerings = discipline.offerings.all().order_by("teacher")

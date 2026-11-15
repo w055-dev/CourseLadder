@@ -14,7 +14,7 @@
     <dl class="details">
         <dt>Дисциплина</dt>
         <dd>
-            <a href="{% url 'catalog:discipline_detail' offering.discipline.id %}">
+            <a href="{% url 'catalog:discipline_detail' offering.discipline.slug %}">
                 {{ offering.discipline.name }}
             </a>
         </dd>
@@ -29,7 +29,7 @@
         <dd>{{ offering.total_seats }}</dd>
 
         <dt>Занято</dt>
-        <dd>{{ offering.taken_seats }}</dd>
+        <dd>{{ offering.active_taken_seats }}</dd>
 
         <dt>Свободно</dt>
         <dd>{{ offering.free_seats }}</dd>

@@ -13,6 +13,7 @@
                 <th>Дисциплина</th>
                 <th>Преподаватель</th>
                 <th>Поток</th>
+                <th>Статус</th>
                 <th></th>
             </tr>
         </thead>
@@ -21,7 +22,7 @@
                 <tr>
                     <td>{{ e.student.full_name }}</td>
                     <td>
-                        <a href="{% url 'catalog:discipline_detail' e.offering.discipline.id %}">
+                        <a href="{% url 'catalog:discipline_detail' e.offering.discipline.slug %}">
                             {{ e.offering.discipline.name }}
                         </a>
                     </td>
@@ -31,13 +32,23 @@
                             №{{ e.offering.id }}
                         </a>
                     </td>
+                    <td>{{ e.get_status_display }}</td>
                     <td>
-                        <form action="{% url 'enrollments:cancel' e.id %}" method="post" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('Отменить запись?')">
-                                Отменить
-                            </button>
-                        </form>
+                         {% if e.status == 'ACTIVE' %}
+                            <form action="{% url 'enrollments:cancel' e.id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('Отменить запись?')">
+                                    Отменить
+                                </button>
+                            </form>
+                        {% else %}
+                            <form action="{% url 'enrollments:restore' e.id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('Восстановить запись на этот поток?')">
+                                    Записаться заново
+                                </button>
+                            </form>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}
