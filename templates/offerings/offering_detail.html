@@ -14,7 +14,7 @@
     <dl class="details">
         <dt>Дисциплина</dt>
         <dd>
-            <a href="{% url 'catalog:discipline_detail' offering.discipline.slug %}">
+            <a href="{{ offering.discipline.get_absolute_url }}">
                 {{ offering.discipline.name }}
             </a>
         </dd>

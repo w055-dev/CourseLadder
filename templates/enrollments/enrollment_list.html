@@ -22,7 +22,7 @@
                 <tr>
                     <td>{{ e.student.full_name }}</td>
                     <td>
-                        <a href="{% url 'catalog:discipline_detail' e.offering.discipline.slug %}">
+                        <a href="{{ e.offering.discipline.get_absolute_url }}">
                             {{ e.offering.discipline.name }}
                         </a>
                     </td>

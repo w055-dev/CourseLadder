@@ -11,7 +11,7 @@
     <ul class="item-list">
         {% for discipline in disciplines %}
             <li>
-                <a href="{% url 'catalog:discipline_detail' discipline.slug %}">
+                <a href="{{ discipline.get_absolute_url }}">
                     <span class="item-name">{{ discipline.name }}</span>
                     <span class="badge">{{ discipline.credits }} кредитов</span>
                 </a>
